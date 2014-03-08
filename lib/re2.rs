@@ -1,10 +1,13 @@
 use std::libc::{c_char, c_int, c_void};
 use std::str::raw::{from_c_str};
+use std::default::Default;
 
 pub type Regex = *c_void;
 pub type Options = *c_void;
+
+#[allow(non_camel_case_types)]
 #[repr(C)]
-#[deriving(Eq)]
+#[deriving(Eq, Show)]
 pub enum ErrorCode {
   NO_ERROR,
   ERROR_INTERNAL,
@@ -21,14 +24,17 @@ pub enum ErrorCode {
   ERROR_BAD_NAMED_CAPTURE,
   ERROR_PATTERN_TOO_LARGE
 }
+
+#[allow(non_camel_case_types)]
 #[repr(C)]
-#[deriving(Eq)]
+#[deriving(Eq, Show)]
 pub enum Encoding {
   UNKNOWN,
   UTF8,
   LATIN1
 }
 
+#[allow(non_camel_case_types)]
 pub struct cre2_string_t {
   data: *c_char,
   length: c_int
@@ -187,7 +193,7 @@ pub fn easy_match (pattern: &str, text: &str, matches: &mut [~str]) -> i32 {
         //println!("{:?}", a);
         //println!("{:?}", r);
         for i in range(0, matches.len()) {
-          if (!std::ptr::is_null(a[i].data)) {
+          if a[i].data.is_not_null() {
             let c_str = from_c_str(a[i].data);
             matches[i] = c_str.slice_to(a[i].length as uint).to_str();
           }

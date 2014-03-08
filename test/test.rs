@@ -1,4 +1,6 @@
-extern mod re2;
+extern crate re2;
+
+use std::io::stdio::println;
 
 fn main () {
   assert_eq!(re2::version_string(), ~"0.0");
