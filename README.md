@@ -1,5 +1,7 @@
 #Rust RE2
 
+[![Build Status](https://travis-ci.org/vladimir-lu/rust-re2.png?branch=master)](https://travis-ci.org/vladimir-lu/rust-re2)
+
 Bindings for re2 for Rust
 
 #Installing dependencies
