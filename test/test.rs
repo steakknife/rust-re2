@@ -83,6 +83,23 @@ fn test_compiled_matches_capturing () {
   re2::opt_delete(opt);
 }
 
+fn test_compiled_matches_with_flags () {
+  // multiline and case insensitive
+  let pattern = ~"(?im:hello[\\s]+[\\n]?WoRlD)";
+  let opt = re2::opt_new();
+  let regex = re2::new(pattern, pattern.len(), opt);
+
+  assert_eq!(re2::error_code(regex), re2::NO_ERROR);
+  assert_eq!(re2::num_capturing_groups(regex), 0);
+
+  _assert_matches(regex, "hello WORLD!", re2::UNANCHORED, Some(~[~"hello WORLD"]));
+  _assert_matches(regex, "test hello\nWorLd!", re2::UNANCHORED, Some(~[~"hello\nWorLd"]));
+
+  // clean up manually
+  re2::delete(regex);
+  re2::opt_delete(opt);
+}
+
 fn main () {
   assert_eq!(re2::version_string(), ~"0.0");
   assert_eq!(re2::version_interface_current(), 0);
@@ -117,6 +134,7 @@ fn main () {
   test_compiled_matches_simple();
   test_compiled_matches_capturing_only_sub();
   test_compiled_matches_capturing();
+  test_compiled_matches_with_flags();
 
   println("tests passed!");
 }
