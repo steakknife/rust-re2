@@ -1,10 +1,13 @@
 use std::libc::{c_char, c_int, c_void};
 use std::str::raw::{from_c_str};
+use std::default::Default;
 
 pub type Regex = *c_void;
 pub type Options = *c_void;
+
+#[allow(non_camel_case_types)]
 #[repr(C)]
-#[deriving(Eq)]
+#[deriving(Eq, Show)]
 pub enum ErrorCode {
   NO_ERROR,
   ERROR_INTERNAL,
@@ -21,14 +24,26 @@ pub enum ErrorCode {
   ERROR_BAD_NAMED_CAPTURE,
   ERROR_PATTERN_TOO_LARGE
 }
+
+#[allow(non_camel_case_types)]
 #[repr(C)]
-#[deriving(Eq)]
+#[deriving(Eq, Show)]
 pub enum Encoding {
   UNKNOWN,
   UTF8,
   LATIN1
 }
 
+#[allow(non_camel_case_types)]
+#[repr(C)]
+#[deriving(Eq, Show)]
+pub enum Anchor {
+  UNANCHORED = 1,
+  ANCHOR_START = 2,
+  ANCHOR_BOTH = 3
+}
+
+#[allow(non_camel_case_types)]
 pub struct cre2_string_t {
   data: *c_char,
   length: c_int
@@ -76,6 +91,14 @@ extern {
   fn cre2_easy_match (pattern: *c_char, pattern_len: i32,
                       text: *c_char, text_len: i32,
                       cre2_match: *cre2_string_t, nmatch: i32) -> c_int;
+
+  fn cre2_match (rex: Regex, text: *c_char, text_len: c_int, start_pos: c_int,
+                 end_pos: c_int, anchor: Anchor, cre2_match: *cre2_string_t, 
+                 nmatch: c_int) -> c_int;
+
+  fn cre2_full_match_re (rex: Regex, text: *cre2_string_t, matches: *cre2_string_t, 
+                         nmatch: c_int) -> c_int;
+
 }
 
 // cre2 bindings
@@ -187,7 +210,7 @@ pub fn easy_match (pattern: &str, text: &str, matches: &mut [~str]) -> i32 {
         //println!("{:?}", a);
         //println!("{:?}", r);
         for i in range(0, matches.len()) {
-          if (!std::ptr::is_null(a[i].data)) {
+          if a[i].data.is_not_null() {
             let c_str = from_c_str(a[i].data);
             matches[i] = c_str.slice_to(a[i].length as uint).to_str();
           }
@@ -200,3 +223,48 @@ pub fn easy_match (pattern: &str, text: &str, matches: &mut [~str]) -> i32 {
   }
 }
 
+pub fn matches (rex: Regex, text: &str, start_pos: uint, end_pos: uint, anchor: Anchor, 
+                matches: &mut [~str]) -> int {
+  // create a vector of cre2_string_t (in addition to the match array passed in)
+  let mut a: ~[cre2_string_t] = ~[];
+  for _ in range(0, matches.len()) {
+    a.push(Default::default());
+  }
+  unsafe {
+    let rcode = text.with_c_str(|c_text| {
+      let rcode = cre2_match(rex, c_text, text.len() as c_int, start_pos as c_int, 
+                             end_pos as c_int, anchor, a.as_ptr(), matches.len() as c_int);
+      for i in range(0, matches.len()) {
+        if a[i].data.is_not_null() {
+          let c_str = from_c_str(a[i].data);
+          matches[i] = c_str.slice_to(a[i].length as uint).to_str();
+        }
+      };
+      rcode
+    });
+    rcode as int
+  }
+}
+
+pub fn full_match (rex: Regex, text: &str, matches: &mut [~str]) -> int {
+  // create a vector of cre2_string_t for the matches
+  let mut a: ~[cre2_string_t] = ~[];
+  for _ in range(0, matches.len()) {
+    a.push(Default::default());
+  }
+  unsafe {
+    let rcode = text.with_c_str(|c_text| {
+      // create a cre2_string_t for the text
+      let text_str = cre2_string_t { data: c_text, length: text.len() as i32 };
+      let rcode = cre2_full_match_re(rex, &text_str, a.as_ptr(), matches.len() as c_int);
+      for i in range(0, matches.len()) {
+        if a[i].data.is_not_null() {
+          let c_str = from_c_str(a[i].data);
+          matches[i] = c_str.slice_to(a[i].length as uint).to_str();
+        }
+      }
+      rcode
+    });
+    rcode as int
+  }  
+}

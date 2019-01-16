@@ -1,2 +1,2 @@
 all:
-	rustc --lib re2.rs
+	rustc --crate-type lib re2.rs
